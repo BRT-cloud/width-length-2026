@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>장애공감 가로세로퀴즈</title>
+    <!-- 외부 라이브러리 및 폰트 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nanum Gothic', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+    </style>
+</head>
+<body class="bg-[#FFFDFE]">
+    <div id="root"></div>
+
+    <!-- React 및 Babel (CDN) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // 아이콘 컴포넌트 래퍼
+        const Icon = ({ name, ...props }) => {
+            const LucideIcon = lucide[name];
+            return LucideIcon ? <LucideIcon {...props} /> : null;
+        };
+
+        const GRID_SIZE = 16;
+        const WORDS = [
+            { id: 'h1', displayNum: 1, word: '배리어프리', initial: 'ㅂㄹㅇㅍㄹ', hint: '장벽을 허물다라는 뜻으로, 장애인들이 살기 좋은 사회을 만들기 위해 물리적/제도적 장벽을 없애는 운동.', direction: 'h', row: 1, col: 1 },
+            { id: 'h8', displayNum: 3, word: '유니버설디자인', initial: 'ㅇㄴㅂㅅㄷㅈㅇ', hint: '연령, 성별, 장애 유무에 상관없이 누구나 편리하게 이용할 수 있는 설계/디자인.', direction: 'h', row: 3, col: 7 },
+            { id: 'h7', displayNum: 5, word: '패럴림픽', initial: 'ㅍㄹㄹㅍ', hint: '신체적 장애가 있는 선수들이 참여하는 국제 스포츠 대회.', direction: 'h', row: 1, col: 12 },
+            { id: 'h6', displayNum: 7, word: '장애인차별금지법', initial: 'ㅈㅇㅇㅊㅂㄱㅈㅂ', hint: '모든 생활 영역에서 장애를 이유로 한 차별을 금지하고 권리를 구제하기 위한 법률.', direction: 'h', row: 7, col: 1 },
+            { id: 'h5', displayNum: 6, word: '안내견', initial: 'ㅇㄴㄱ', hint: '시각 장애인의 안전한 보행을 돕기 위해 훈련된 특별한 개.', direction: 'h', row: 12, col: 10 },
+            { id: 'h2', displayNum: 11, word: '수어', initial: 'ㅅㅇ', hint: '청각 장애인이 손의 움직임과 표정 등으로 의사를 전달하는 언어.', direction: 'h', row: 12, col: 4 },
+            { id: 'h4', displayNum: 13, word: '통합교육', initial: 'ㅌㅎㄱㅇ', hint: '장애 학생과 비장애 학생이 같은 학교 환경에서 함께 배우는 교육 방식.', direction: 'h', row: 14, col: 1 },
+            { id: 'h3', displayNum: 14, word: '점자', initial: 'ㅈㅈ', hint: '시각 장애인이 손가락 끝으로 읽을 수 있도록 만든 6개의 점으로 된 글자.', direction: 'h', row: 14, col: 10 },
+            { id: 'v2', displayNum: 2, word: '편의시설', initial: 'ㅍㅇㅅㅅ', hint: '장애인이 일상생활에서 불편함 없이 이동하고 시설을 이용할 수 있게 돕는 각종 장치.', direction: 'h', row: 5, col: 10 },
+            { id: 'v1', displayNum: 1, word: '배려', initial: 'ㅂㄹ', hint: '다른 사람을 도와주거나 보살펴 주려고 마음을 쓰는 것.', direction: 'v', row: 1, col: 1 },
+            { id: 'v4', displayNum: 4, word: '저상버스', initial: 'ㅈㅅㅂㅅ', hint: '휠체어 이용자나 노약자가 타기 편하도록 바닥이 낮고 경사판이 설치된 버스.', direction: 'v', row: 1, col: 9 },
+            { id: 'v3', displayNum: 8, word: '인식개선', initial: 'ㅇㅅㄱㅅ', hint: '장애인에 대한 편견을 버리고 올바른 생각을 갖도록 사회적 태도를 바꾸는 것.', direction: 'v', row: 7, col: 3 },
+            { id: 'v8', displayNum: 9, word: '흰지팡이', initial: 'ㅎㅈㅍㅇ', hint: '시각 장애인의 보행 보조 기구로, 자립과 성취를 상징함.', direction: 'v', row: 6, col: 7 },
+            { id: 'v5', displayNum: 10, word: '공감', initial: 'ㄱㄱ', hint: '상대방의 감정이나 상황을 자신의 것처럼 느끼고 이해하는 마음.', direction: 'v', row: 3, col: 2 },
+            { id: 'v6', displayNum: 12, word: '휠체어', initial: 'ㅎㅊㅇ', hint: '보행이 어려운 장애인이 앉아서 이동할 수 있도록 만든 의자 모양의 기구.', direction: 'v', row: 10, col: 5 },
+            { id: 'v9', displayNum: 15, word: '화합', initial: 'ㅎㅎ', hint: '장애인과 비장애인이 서로 어울려 잘 지내는 것을 뜻합니다.', direction: 'v', row: 13, col: 2 },
+            { id: 'v10', displayNum: 16, word: '편견', initial: 'ㅍㄱ', hint: '공정하지 못하고 한쪽으로 치우친 생각으로, 우리가 꼭 버려야 할 마음입니다.', direction: 'v', row: 11, col: 12 },
+            { id: 'v11', displayNum: 17, word: '시각장애', initial: 'ㅅㄱㅈㅇ', hint: '시력이 낮거나 전혀 보이지 않아 일상생활에 제약을 받는 장애를 말합니다.', direction: 'v', row: 5, col: 12 },
+        ];
+
+        function App() {
+            const [grid, setGrid] = useState(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null)));
+            const [userInput, setUserInput] = useState(Array(GRID_SIZE).fill('').map(() => Array(GRID_SIZE).fill('')));
+            const [selectedWord, setSelectedWord] = useState(null); 
+            const [wordInputValue, setWordInputValue] = useState('');
+            const [solvedWords, setSolvedWords] = useState(new Set());
+            const [isGameComplete, setIsGameComplete] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [isError, setIsError] = useState(false);
+
+            const hintRefs = useRef({});
+
+            useEffect(() => {
+                const newGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+                WORDS.forEach((w) => {
+                    for (let i = 0; i < w.word.length; i++) {
+                        const r = w.direction === 'h' ? w.row : w.row + i;
+                        const c = w.direction === 'h' ? w.col + i : w.col;
+                        if (r < GRID_SIZE && c < GRID_SIZE) {
+                            if (!newGrid[r][c]) newGrid[r][c] = { letter: w.word[i], words: [] };
+                            newGrid[r][c].words.push(w.id);
+                        }
+                    }
+                });
+                setGrid(newGrid);
+            }, []);
+
+            useEffect(() => {
+                if (selectedWord && hintRefs.current[selectedWord.id]) {
+                    hintRefs.current[selectedWord.id].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, [selectedWord]);
+
+            const handleWordSubmit = (e) => {
+                e.preventDefault();
+                if (!selectedWord || !wordInputValue) return;
+                const targetWord = selectedWord.word;
+                const input = wordInputValue.trim();
+                if (input === targetWord) {
+                    const newUserInput = [...userInput];
+                    for (let i = 0; i < targetWord.length; i++) {
+                        const r = selectedWord.direction === 'h' ? selectedWord.row : selectedWord.row + i;
+                        const c = selectedWord.direction === 'h' ? selectedWord.col + i : selectedWord.col;
+                        newUserInput[r][c] = input[i];
+                    }
+                    setUserInput(newUserInput);
+                    const newSolved = new Set(solvedWords);
+                    newSolved.add(selectedWord.id);
+                    setSolvedWords(newSolved);
+                    setSelectedWord(null);
+                    setWordInputValue('');
+                    setIsError(false);
+                    if (newSolved.size === WORDS.length) {
+                        setIsGameComplete(true);
+                        setTimeout(() => setShowModal(true), 800);
+                    }
+                } else {
+                    setIsError(true);
+                    setTimeout(() => setIsError(false), 1000);
+                }
+            };
+
+            const handleCellClick = (r, c) => {
+                const cell = grid[r][c];
+                if (cell) {
+                    const wordId = cell.words[0];
+                    const wordObj = WORDS.find(w => w.id === wordId);
+                    setSelectedWord(wordObj);
+                    setWordInputValue('');
+                    setIsError(false);
+                }
+            };
+
+            const resetGame = () => {
+                setUserInput(Array(GRID_SIZE).fill('').map(() => Array(GRID_SIZE).fill('')));
+                setIsGameComplete(false);
+                setShowModal(false);
+                setSolvedWords(new Set());
+                setSelectedWord(null);
+                setWordInputValue('');
+                setIsError(false);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#FFFDFE] flex flex-col items-center p-4 md:p-8 font-sans text-[#5A4B51] relative overflow-x-hidden pb-[550px]">
+                    <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-pink-100/30 rounded-full blur-[100px]"></div>
+                    <div className="absolute bottom-0 right-0 w-[40%] h-[40%] bg-blue-100/20 rounded-full blur-[100px]"></div>
+
+                    <header className="w-full max-w-5xl mb-6 flex flex-col items-center text-center relative z-10">
+                        <div className="inline-flex items-center gap-2 bg-white px-5 py-2 rounded-full shadow-md border border-pink-100 mb-4 animate-bounce duration-[3000ms]">
+                            <Icon name="Heart" size={18} className="text-rose-400 fill-rose-400" />
+                            <span className="text-xs font-black text-rose-400 tracking-widest uppercase">Empathy Awareness Project</span>
+                        </div>
+                        <h1 className="text-3xl md:text-5xl font-black text-[#4A3E43] drop-shadow-sm tracking-tight mb-4">장애공감 가로세로퀴즈</h1>
+                        <div className="flex items-center gap-4 bg-white/80 backdrop-blur-md px-8 py-3 rounded-3xl border-2 border-pink-50 shadow-lg">
+                            <div className="h-3 w-32 md:w-56 bg-pink-50 rounded-full overflow-hidden border border-pink-100 shadow-inner">
+                                <div className="h-full bg-gradient-to-r from-rose-300 to-rose-500 transition-all duration-1000" style={{ width: `${(solvedWords.size / WORDS.length) * 100}%` }}></div>
+                            </div>
+                            <p className="text-[#5A4B51] font-black text-base">{solvedWords.size} / {WORDS.length} 완성!</p>
+                        </div>
+                    </header>
+
+                    <main className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-10 relative z-10">
+                        <section className="lg:col-span-8 flex flex-col items-center">
+                            <div className="bg-white/90 backdrop-blur-xl p-4 md:p-10 rounded-[4rem] shadow-2xl border-4 border-white w-full flex justify-center overflow-auto scrollbar-hide min-h-[500px]">
+                                <div className="grid gap-1.5 md:gap-2" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(28px, 1fr))`, width: 'fit-content' }}>
+                                    {grid.map((row, r) => row.map((cell, c) => {
+                                        if (!cell) return <div key={`${r}-${c}`} className="w-7 h-7 md:w-10 md:h-10 bg-pink-50/10 rounded-xl" />;
+                                        const isPartofActiveWord = selectedWord && cell.words.includes(selectedWord.id);
+                                        const isFullyCorrect = cell.words.every(id => solvedWords.has(id));
+                                        const startWord = WORDS.find(w => w.row === r && w.col === c);
+                                        return (
+                                            <div key={`${r}-${c}`} className={`relative w-7 h-7 md:w-10 md:h-10 border-[3px] transition-all duration-300 rounded-[1rem] cursor-pointer flex items-center justify-center shadow-sm ${isPartofActiveWord ? 'border-rose-500 bg-rose-50 ring-4 ring-rose-100 scale-110 z-20 shadow-xl' : 'border-rose-300 bg-white hover:border-rose-400'} ${isFullyCorrect ? 'bg-gradient-to-br from-rose-100 to-pink-50 border-rose-400 text-rose-600 font-black' : ''}`} onClick={() => handleCellClick(r, c)}>
+                                                {startWord && <span className="absolute top-0.5 left-1 text-[8px] md:text-[10px] font-black text-rose-500 leading-none">{startWord.displayNum}</span>}
+                                                <span className="text-lg md:text-xl font-black">{userInput[r][c] || ''}</span>
+                                            </div>
+                                        );
+                                    }))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="lg:col-span-4 flex flex-col gap-6">
+                            <div className="bg-white rounded-[3rem] shadow-2xl border-2 border-pink-100 overflow-hidden flex flex-col h-[500px] md:h-[600px]">
+                                <div className="p-6 bg-gradient-to-r from-rose-400 to-pink-400 text-white flex items-center justify-between sticky top-0 z-10 shadow-md">
+                                    <div className="flex items-center gap-3">
+                                        <Icon name="BookOpen" size={24} />
+                                        <h2 className="text-xl font-black tracking-tight">지혜의 열쇠</h2>
+                                    </div>
+                                    <Icon name="Sparkles" size={20} className="animate-pulse" />
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-hide scroll-smooth">
+                                    {WORDS.sort((a,b) => a.displayNum - b.displayNum).map((w) => (
+                                        <div key={w.id} ref={el => hintRefs.current[w.id] = el} className={`group p-4 rounded-[2.2rem] border-2 transition-all cursor-pointer relative shadow-sm ${solvedWords.has(w.id) ? 'bg-pink-50/50 border-pink-200 opacity-60' : (selectedWord?.id === w.id ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.03] z-10' : 'border-transparent bg-slate-50 hover:bg-rose-50/50 hover:border-rose-300')}`} onClick={() => { setSelectedWord(w); setWordInputValue(''); setIsError(false); }}>
+                                            <div className="flex items-start gap-3">
+                                                <span className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-2xl font-black text-xs shadow-md transition-transform group-hover:scale-110 ${solvedWords.has(w.id) ? 'bg-pink-200 text-pink-400' : (w.direction === 'h' ? 'bg-rose-500 text-white shadow-rose-100' : 'bg-sky-400 text-white shadow-sky-100')}`}>{w.displayNum}</span>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-sm ${w.direction === 'h' ? 'bg-rose-100 text-rose-400' : 'bg-sky-100 text-sky-400'}`}>{w.direction === 'h' ? '가로' : '세로'}</span>
+                                                        <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-full border border-pink-100 shadow-sm">
+                                                            <Icon name="Lightbulb" size={11} className="text-amber-400 fill-amber-50" />
+                                                            <span className="text-[10px] font-black text-amber-600 tracking-widest uppercase">{w.initial}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className={`text-[14px] font-bold leading-relaxed ${solvedWords.has(w.id) ? 'line-through text-pink-300 italic' : 'text-[#5A4B51]'}`}>{w.hint}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <button onClick={resetGame} className="w-full bg-[#5A4B51] hover:bg-[#3A3034] text-white py-5 rounded-[2.2rem] font-black text-sm transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group"><Icon name="RefreshCcw" size={20} className="group-hover:rotate-180 transition-transform duration-700" /> 모든 기록 초기화</button>
+                        </section>
+                    </main>
+
+                    {selectedWord && !solvedWords.has(selectedWord.id) && (
+                        <div className="fixed bottom-0 left-0 right-0 p-6 md:p-8 bg-white/95 backdrop-blur-3xl border-t-4 border-pink-200 z-50 animate-in slide-in-from-bottom-full duration-700 shadow-[0_-20px_60px_rgba(244,63,94,0.3)]">
+                            <form onSubmit={handleWordSubmit} className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-6 relative">
+                                <button type="button" onClick={() => setSelectedWord(null)} className="absolute -top-12 right-0 bg-white/80 p-2 rounded-full border border-pink-200 text-slate-400 hover:text-rose-500 transition-colors shadow-sm"><Icon name="X" size={20} /></button>
+                                <div className="flex-1 flex flex-col gap-2 w-full">
+                                    <div className="flex items-center gap-3 mb-1 px-2">
+                                        <span className={`px-5 py-1.5 rounded-full text-xs font-black text-white shadow-lg ${selectedWord.direction === 'h' ? 'bg-rose-500' : 'bg-sky-500'}`}>{selectedWord.displayNum}번 {selectedWord.direction === 'h' ? '가로' : '세로'}</span>
+                                        <span className="bg-amber-50 text-amber-600 px-5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 border border-amber-200 shadow-md"><Icon name="Lightbulb" size={16} /> 초성: {selectedWord.initial}</span>
+                                        <span className="text-sm font-bold text-slate-400 italic">({selectedWord.word.length}글자)</span>
+                                    </div>
+                                    <div className="relative w-full">
+                                        <input type="text" placeholder="정답을 입력해 주세요!" className={`w-full border-4 rounded-[2rem] px-10 py-5 text-2xl md:text-3xl font-black transition-all shadow-inner focus:outline-none focus:ring-8 ${isError ? 'bg-red-50 border-red-400 text-red-600 animate-shake focus:ring-red-100' : 'bg-white border-rose-100 text-[#4A3E43] focus:border-rose-400 focus:ring-rose-50 placeholder:text-slate-200'}`} value={wordInputValue} onChange={(e) => { setWordInputValue(e.target.value); if(isError) setIsError(false); }} autoFocus />
+                                        {isError && <div className="absolute -bottom-10 left-6 flex items-center gap-1.5 text-red-500 font-bold text-sm animate-bounce"><Icon name="AlertCircle" size={16} /><span>틀렸어요! 다시 한 번 생각해보세요.</span></div>}
+                                    </div>
+                                </div>
+                                <button type="submit" className={`px-12 py-5 md:h-[84px] mt-0 md:mt-8 rounded-[2.5rem] font-black text-xl flex items-center gap-3 shadow-xl transition-all active:scale-95 w-full md:w-auto justify-center group ${isError ? 'bg-red-400 shadow-red-100' : 'bg-gradient-to-br from-rose-400 to-pink-600 hover:from-rose-500 hover:to-pink-700 text-white shadow-rose-200'}`}><Icon name="Send" size={28} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> 정답 확인</button>
+                            </form>
+                        </div>
+                    )}
+
+                    {showModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#4A3E43]/50 backdrop-blur-2xl animate-in fade-in duration-1000">
+                            <div className="bg-white rounded-[5rem] shadow-2xl p-12 md:p-24 max-w-2xl w-full text-center relative overflow-hidden border-4 border-white">
+                                <div className="relative z-10">
+                                    <div className="w-28 h-28 bg-gradient-to-tr from-rose-400 to-amber-300 rounded-[3rem] flex items-center justify-center mx-auto mb-10 shadow-2xl rotate-12 animate-bounce"><Icon name="Trophy" size={56} className="text-white" /></div>
+                                    <h2 className="text-4xl md:text-6xl font-black text-[#4A3E43] mb-8 tracking-tighter">"참 잘했어요! ✨"</h2>
+                                    <p className="text-2xl md:text-3xl font-black text-rose-500 mb-10 leading-snug">당신의 따뜻한 관심이 편견 없는<br/><span className="text-sky-400 underline underline-offset-[12px] decoration-sky-100">뭉글뭉글한 세상</span>을 만듭니다.</p>
+                                    <div className="bg-pink-50/50 p-10 rounded-[3.5rem] text-[#5A4B51] text-lg md:text-xl font-bold leading-relaxed mb-12 border-2 border-pink-100 shadow-inner">장애는 '틀림'이 아니라 우리 모두가 가진 <span className="text-rose-400 font-black">'다름'</span> 중 하나일 뿐입니다. 오늘 배운 단어들이 여러분의 마음속에서 공감의 씨앗이 되어 예쁘게 피어나길 바랍니다. 🌷</div>
+                                    <button onClick={resetGame} className="w-full bg-gradient-to-r from-rose-400 to-pink-600 text-white font-black py-6 rounded-[2.5rem] shadow-2xl transition-all hover:scale-105 active:scale-95 text-xl tracking-tight">다시 도전하기</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
