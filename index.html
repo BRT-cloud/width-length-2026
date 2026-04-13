@@ -212,8 +212,14 @@
                                                     ${isFullyCorrect ? 'bg-gradient-to-br from-rose-50 to-pink-50 border-rose-400 text-rose-600 font-black' : ''}`} 
                                                 onClick={() => handleCellClick(r, c)}
                                             >
-                                                {startWord && <span className="absolute top-0.5 left-1 text-[7px] md:text-[10px] font-black text-rose-500 leading-none">{startWord.displayNum}</span>}
-                                                <span className="text-xl md:text-3xl font-black">{userInput[r][c] || ''}</span>
+                                                {/* 문제를 맞히면(solvedWords에 포함되면) 숫자를 숨깁니다 */}
+                                                {startWord && !solvedWords.has(startWord.id) && (
+                                                    <span className="absolute top-0.5 left-1 text-[7px] md:text-[10px] font-black text-rose-500 leading-none">
+                                                        {startWord.displayNum}
+                                                    </span>
+                                                )}
+                                                {/* 입력 글자 크기를 약 1pt( Tailwind 기준 한 단계) 줄였습니다: text-xl -> text-lg, text-3xl -> text-2xl */}
+                                                <span className="text-lg md:text-2xl font-black">{userInput[r][c] || ''}</span>
                                             </div>
                                         );
                                     }))}
@@ -270,7 +276,7 @@
                     {selectedWord && !solvedWords.has(selectedWord.id) && (
                         <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-white/95 backdrop-blur-3xl border-t-4 border-pink-100 z-50 animate-in slide-in-from-bottom-full duration-500 shadow-[0_-15px_40px_rgba(0,0,0,0.1)]">
                             <div className="max-w-2xl mx-auto relative">
-                                <button type="button" onClick={() => setSelectedWord(null)} className="absolute -top-10 right-0 bg-white/90 p-2 rounded-full border border-pink-100 text-slate-400 hover:text-rose-500 transition-colors shadow-md">
+                                <button type="button" onClick={() => setSelectedWord(null)} className="absolute -top-10 right-0 bg-white/80 p-2 rounded-full border border-pink-100 text-slate-400 hover:text-rose-500 transition-colors shadow-md">
                                     <Icon name="X" size={18} />
                                 </button>
                                 <form onSubmit={handleWordSubmit} className="flex flex-col md:flex-row items-center gap-4">
