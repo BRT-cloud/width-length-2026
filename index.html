@@ -44,7 +44,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const Icon = ({ name, size = 20, className = "" }) => {
+        const Icon = ({ name, size = 18, className = "" }) => {
             const kebabName = name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase().replace(/^-/, '');
             return (
                 <i data-lucide={kebabName} style={{ width: size, height: size, display: 'inline-block' }} className={className}></i>
@@ -53,8 +53,10 @@
 
         const GRID_SIZE = 16;
         const WORDS = [
+            // --- 가로 (Horizontal) ---
+            // 전체 퍼즐 +1 우측 이동, 3번 가로(h8)는 별도로 -1 좌측 이동 (결과적으로 그대로)
             { id: 'h1', displayNum: 1, word: '배리어프리', initial: 'ㅂㄹㅇㅍㄹ', hint: '장벽을 허물다라는 뜻으로, 장애인들이 살기 좋은 사회을 만들기 위해 물리적/제도적 장벽을 없애는 운동.', direction: 'h', row: 1, col: 1 },
-            { id: 'h8', displayNum: 3, word: '유니버설디자인', initial: 'ㅇㄴㅂㅅㄷㅈㅇ', hint: '연령, 성별, 장애 유무에 상관없이 누구나 편리하게 이용할 수 있는 설계/디자인.', direction: 'h', row: 3, col: 7 },
+            { id: 'h8', displayNum: 3, word: '유니버설디자인', initial: 'ㅇㄴㅂㅅㄷㅈㅇ', hint: '연령, 성별, 장애 유무에 상관없이 누구나 편리하게 이용할 수 있는 설계/디자인.', direction: 'h', row: 3, col: 6 },
             { id: 'h7', displayNum: 5, word: '패럴림픽', initial: 'ㅍㄹㄹㅍ', hint: '신체적 장애가 있는 선수들이 참여하는 국제 스포츠 대회.', direction: 'h', row: 1, col: 10 },
             { id: 'h6', displayNum: 7, word: '장애인차별금지법', initial: 'ㅈㅇㅇㅊㅂㄱㅈㅂ', hint: '모든 생활 영역에서 장애를 이유로 한 차별을 금지하고 권리를 구제하기 위한 법률.', direction: 'h', row: 7, col: 1 },
             { id: 'h5', displayNum: 6, word: '안내견', initial: 'ㅇㄴㄱ', hint: '시각 장애인의 안전한 보행을 돕기 위해 훈련된 특별한 개.', direction: 'h', row: 12, col: 10 },
@@ -62,6 +64,9 @@
             { id: 'h4', displayNum: 13, word: '통합교육', initial: 'ㅌㅎㄱㅇ', hint: '장애 학생과 비장애 학생이 같은 학교 환경에서 함께 배우는 교육 방식.', direction: 'h', row: 14, col: 1 },
             { id: 'h3', displayNum: 14, word: '점자', initial: 'ㅈㅈ', hint: '시각 장애인이 손가락 끝으로 읽을 수 있도록 만든 6개의 점으로 된 글자.', direction: 'h', row: 14, col: 10 },
             { id: 'v2', displayNum: 2, word: '편의시설', initial: 'ㅍㅇㅅㅅ', hint: '장애인이 일상생활에서 불편함 없이 이동하고 시설을 이용할 수 있게 돕는 각종 장치.', direction: 'h', row: 5, col: 10 },
+
+            // --- 세로 (Vertical) ---
+            // 전체 퍼즐 +1 우측 이동, 4번 세로(v4)는 별도로 -1 좌측 이동 (결과적으로 그대로)
             { id: 'v1', displayNum: 1, word: '배려', initial: 'ㅂㄹ', hint: '다른 사람을 도와주거나 보살펴 주려고 마음을 쓰는 것.', direction: 'v', row: 1, col: 1 },
             { id: 'v4', displayNum: 4, word: '저상버스', initial: 'ㅈㅅㅂㅅ', hint: '휠체어 이용자나 노약자가 타기 편하도록 바닥이 낮고 경사판이 설치된 버스.', direction: 'v', row: 1, col: 8 },
             { id: 'v3', displayNum: 8, word: '인식개선', initial: 'ㅇㅅㄱㅅ', hint: '장애인에 대한 편견을 버리고 올바른 생각을 갖도록 사회적 태도를 바꾸는 것.', direction: 'v', row: 7, col: 3 },
@@ -212,14 +217,14 @@
                                                     ${isFullyCorrect ? 'bg-gradient-to-br from-rose-50 to-pink-50 border-rose-400 text-rose-600 font-black' : ''}`} 
                                                 onClick={() => handleCellClick(r, c)}
                                             >
-                                                {/* 문제를 맞히면(solvedWords에 포함되면) 숫자를 숨깁니다 */}
+                                                {/* 문제를 맞히면 숫자가 사라지도록 설정 */}
                                                 {startWord && !solvedWords.has(startWord.id) && (
                                                     <span className="absolute top-0.5 left-1 text-[7px] md:text-[10px] font-black text-rose-500 leading-none">
                                                         {startWord.displayNum}
                                                     </span>
                                                 )}
-                                                {/* 입력 글자 크기를 약 1pt( Tailwind 기준 한 단계) 줄였습니다: text-xl -> text-lg, text-3xl -> text-2xl */}
-                                                <span className="text-lg md:text-2xl font-black">{userInput[r][c] || ''}</span>
+                                                {/* 정답 입력 글자 크기를 약 1pt 줄여서 여유 있게 표시 (text-base, text-xl) */}
+                                                <span className="text-base md:text-xl font-black">{userInput[r][c] || ''}</span>
                                             </div>
                                         );
                                     }))}
@@ -257,8 +262,10 @@
                                                         </span>
                                                         <span className="text-[10px] font-black text-amber-500 tracking-tighter uppercase">{w.initial}</span>
                                                     </div>
-                                                    <p className={`text-sm md:text-base font-bold leading-relaxed ${solvedWords.has(w.id) ? 'line-through text-slate-400 italic' : 'text-[#5A4B51]'}`}>
-                                                        {w.hint}
+                                                    <p className="text-sm md:text-base font-bold leading-relaxed">
+                                                        <span className={solvedWords.has(w.id) ? 'line-through text-slate-400 italic' : 'text-[#5A4B51]'}>
+                                                            {w.hint}
+                                                        </span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -272,11 +279,11 @@
                         </section>
                     </main>
 
-                    {/* 하단 플로팅 입력바 - 크기를 더욱 컴팩트하게 축소 */}
+                    {/* 하단 플로팅 입력바 - 컴팩트 사이즈 */}
                     {selectedWord && !solvedWords.has(selectedWord.id) && (
                         <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-white/95 backdrop-blur-3xl border-t-4 border-pink-100 z-50 animate-in slide-in-from-bottom-full duration-500 shadow-[0_-15px_40px_rgba(0,0,0,0.1)]">
                             <div className="max-w-2xl mx-auto relative">
-                                <button type="button" onClick={() => setSelectedWord(null)} className="absolute -top-10 right-0 bg-white/80 p-2 rounded-full border border-pink-100 text-slate-400 hover:text-rose-500 transition-colors shadow-md">
+                                <button type="button" onClick={() => setSelectedWord(null)} className="absolute -top-10 right-0 bg-white/90 p-2 rounded-full border border-pink-100 text-slate-400 hover:text-rose-500 transition-colors shadow-md">
                                     <Icon name="X" size={18} />
                                 </button>
                                 <form onSubmit={handleWordSubmit} className="flex flex-col md:flex-row items-center gap-4">
